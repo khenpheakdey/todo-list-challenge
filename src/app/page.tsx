@@ -1,113 +1,172 @@
-import Image from "next/image";
+"use client";
+
+import { useTodoList } from "@/hooks/use-todo-list";
+import { Todo } from "@/types/todo";
+import { useState } from "react";
+import { createTodo } from "./actions";
+import { getCurrentDate } from "@/utils/date-time";
+import { Input } from "@/components/Input";
 
 export default function Home() {
+  const { todos, addTodo, removeTodo, editTodo, toggleTodo } = useTodoList();
+  const [onHoverId, setOnHoverId] = useState<string | null>(null);
+  const [isEditingId, setIsEditingId] = useState<string | null>(null);
+  const [filterText, setFilterText] = useState<string>("");
+  const [textEditing, setTextEditing] = useState<string | null>(null);
+
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const input = (event.target as HTMLFormElement)
+      .elements[0] as HTMLInputElement;
+
+    // Valid Todo
+    if (!input.value) {
+      alert("Please enter a valid todo");
+      return;
+    }
+
+    // There should be no duplicate item in the list
+    const isDuplicated = todos.some((t) => t.todo === input.value);
+
+    // If the todo already exists, warn the user
+    if (isDuplicated) {
+      alert("This todo already exists!");
+      return;
+    }
+
+    try {
+      // Form data
+      const newTodo: Todo = {
+        id: String(Date.now()),
+        todo: input.value,
+        isCompleted: false,
+        createdAt: getCurrentDate(),
+      };
+
+      await createTodo(newTodo);
+      addTodo(newTodo);
+
+      input.value = "";
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleOnEditing = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = event.target.value.trim();
+
+    setTextEditing(value);
+  };
+
+  const handleFilter = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setFilterText(event.target.value.trim());
+  };
+
+  const handleEdit = async (todoId: string, newTodo: string | null) => {
+    if (!newTodo) {
+      alert("Please enter a valid todo");
+      return;
+    }
+
+    try {
+      await editTodo(todoId, newTodo);
+      setIsEditingId(null);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const toggleEditMode = (todoId: string) => {
+    setIsEditingId((prevId) => (prevId === todoId ? null : todoId));
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+      <form onSubmit={onSubmit} className="space-y-2">
+        <h1 className="text-3xl font-bold">Todo List</h1>
+        <div className="flex gap-x-2">
+          <Input type="text" placeholder="Add a new Todo" />
+          <button type="submit">Add Todo</button>
         </div>
-      </div>
 
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
+        <Input
+          type="text"
+          placeholder="Filter Todos"
+          value={filterText}
+          onChange={handleFilter}
         />
-      </div>
+        <ul>
+          {todos
+            .filter((todo) =>
+              todo.todo.toLowerCase().includes(filterText.toLowerCase())
+            )
+            .map((todo) => (
+              <li
+                key={todo.id}
+                className="flex items-center space-x-2"
+                onMouseEnter={() => setOnHoverId(todo.id)}
+                onMouseLeave={() => setOnHoverId(todo.id)}
+              >
+                {isEditingId === todo.id ? (
+                  <Input
+                    type="text"
+                    defaultValue={todo.todo}
+                    value={textEditing ?? todo.todo}
+                    onChange={handleOnEditing}
+                  />
+                ) : (
+                  <span className={todo.isCompleted ? "line-through" : ""}>
+                    {todo.todo}
+                  </span>
+                )}
+                {onHoverId === todo.id && (
+                  <div className="flex gap-x-2">
+                    {
+                      // Mark the todo as completed or incompleted
+                      todo.isCompleted ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleTodo(todo.id)}
+                        >
+                          Incomplete
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => toggleTodo(todo.id)}
+                        >
+                          Complete
+                        </button>
+                      )
+                    }
+                    {
+                      // If the todo is being edited, show the save button
+                      isEditingId === todo.id ? (
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(todo.id, textEditing)}
+                        >
+                          Save
+                        </button>
+                      ) : null
+                    }
+                    <button
+                      type="button"
+                      className="p-2"
+                      onClick={() => toggleEditMode(todo.id)}
+                    >
+                      Edit
+                    </button>
 
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+                    <button type="button" onClick={() => removeTodo(todo.id)}>
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </li>
+            ))}
+        </ul>
+      </form>
     </main>
   );
 }
