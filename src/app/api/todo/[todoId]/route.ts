@@ -1,4 +1,4 @@
-import { db } from "@/lib/configs/firebase-config";
+import { db } from "@/lib/config/firebase-config";
 import { TODO_COLLECTION } from "@/lib/constants";
 import { todoPatchSchema } from "@/lib/validations/todo";
 import { deleteDoc, doc, getDoc, updateDoc } from "firebase/firestore";
@@ -11,7 +11,10 @@ const routeContextSchema = z.object({
   }),
 });
 
-export async function DELETE(context: z.infer<typeof routeContextSchema>) {
+export async function DELETE(
+  req: Request,
+  context: z.infer<typeof routeContextSchema>
+) {
   try {
     // Validate the route params.
     const { params } = routeContextSchema.parse(context);

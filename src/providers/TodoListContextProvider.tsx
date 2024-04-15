@@ -2,7 +2,7 @@
 
 import { deleteTodo, updateTodo } from "@/app/actions";
 import { TodoListContext } from "@/contexts/TodoListContext";
-import { db } from "@/lib/configs/firebase-config";
+import { db } from "@/lib/config/firebase-config";
 import { TODO_COLLECTION } from "@/lib/constants";
 import { Todo } from "@/types/todo";
 import { collection, onSnapshot } from "firebase/firestore";

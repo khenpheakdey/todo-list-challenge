@@ -1,4 +1,4 @@
-import { db } from "@/lib/configs/firebase-config";
+import { db } from "@/lib/config/firebase-config";
 import { TODO_COLLECTION } from "@/lib/constants";
 import { todos } from "@/lib/data/todos";
 import { todoCreateSchema } from "@/lib/validations/todo";

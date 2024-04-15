@@ -1,6 +1,6 @@
 "use server";
 
-import { db } from "@/lib/configs/firebase-config";
+import { db } from "@/lib/config/firebase-config";
 import { TODO_COLLECTION } from "@/lib/constants";
 import { Todo } from "@/types/todo";
 import { convertTimestampToDate, getCurrentDate } from "@/utils/date-time";
