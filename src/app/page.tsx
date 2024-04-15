@@ -6,6 +6,7 @@ import { useState } from "react";
 import { createTodo } from "./actions";
 import { getCurrentDate } from "@/utils/date-time";
 import { Input } from "@/components/Input";
+import { generateUUID } from "@/utils/uuid";
 
 export default function Home() {
   const { todos, addTodo, removeTodo, editTodo, toggleTodo } = useTodoList();
@@ -21,7 +22,7 @@ export default function Home() {
 
     // Valid Todo
     if (!input.value) {
-      alert("Please enter a valid todo");
+      alert("Cannot add an empty todo!");
       return;
     }
 
@@ -37,15 +38,13 @@ export default function Home() {
     try {
       // Form data
       const newTodo: Todo = {
-        id: String(Date.now()),
+        id: generateUUID(),
         todo: input.value,
         isCompleted: false,
         createdAt: getCurrentDate(),
       };
 
       await createTodo(newTodo);
-      addTodo(newTodo);
-
       input.value = "";
     } catch (error) {
       console.error(error);
@@ -53,23 +52,24 @@ export default function Home() {
   };
 
   const handleOnEditing = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value.trim();
-
-    setTextEditing(value);
+    if (textEditing === event.target.defaultValue && textEditing === "")
+      return event.target.defaultValue;
+    setTextEditing(event.target.value);
   };
 
   const handleFilter = (event: React.ChangeEvent<HTMLInputElement>) => {
     setFilterText(event.target.value.trim());
   };
 
-  const handleEdit = async (todoId: string, newTodo: string | null) => {
-    if (!newTodo) {
-      alert("Please enter a valid todo");
+  const handleEdit = async (todoId: string, newTodoText: string | null) => {
+    if (!newTodoText) {
+      alert("Cannot update an empty todo!");
       return;
     }
 
     try {
-      await editTodo(todoId, newTodo);
+      await editTodo(todoId, newTodoText);
+
       setIsEditingId(null);
     } catch (error) {
       console.error(error);
@@ -78,6 +78,14 @@ export default function Home() {
 
   const toggleEditMode = (todoId: string) => {
     setIsEditingId((prevId) => (prevId === todoId ? null : todoId));
+    setTextEditing(null);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter" && isEditingId) {
+      event.preventDefault(); // Prevent form submission
+      handleEdit(isEditingId, textEditing);
+    }
   };
 
   return (
@@ -103,7 +111,7 @@ export default function Home() {
             .map((todo) => (
               <li
                 key={todo.id}
-                className="flex items-center space-x-2"
+                className="w-full flex items-center space-x-2"
                 onMouseEnter={() => setOnHoverId(todo.id)}
                 onMouseLeave={() => setOnHoverId(todo.id)}
               >
@@ -113,6 +121,7 @@ export default function Home() {
                     defaultValue={todo.todo}
                     value={textEditing ?? todo.todo}
                     onChange={handleOnEditing}
+                    onKeyDown={handleKeyDown}
                   />
                 ) : (
                   <span className={todo.isCompleted ? "line-through" : ""}>
@@ -155,9 +164,8 @@ export default function Home() {
                       className="p-2"
                       onClick={() => toggleEditMode(todo.id)}
                     >
-                      Edit
+                      {isEditingId === todo.id ? "Cancel" : "Edit"}
                     </button>
-
                     <button type="button" onClick={() => removeTodo(todo.id)}>
                       Remove
                     </button>

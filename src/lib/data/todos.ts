@@ -5,13 +5,13 @@ import { getCurrentDate } from "@/utils/date-time";
 export const todos: Todo[] = [
   {
     id: "1",
-    todo: "Finish homework",
+    todo: "Do assignment",
     isCompleted: false,
     createdAt: getCurrentDate(),
   },
   {
     id: "2",
-    todo: "Go grocery shopping",
+    todo: "Shopping",
     isCompleted: false,
     createdAt: getCurrentDate(),
   },

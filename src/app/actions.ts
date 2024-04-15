@@ -3,14 +3,13 @@
 import { db } from "@/lib/configs/firebase-config";
 import { TODO_COLLECTION } from "@/lib/constants";
 import { Todo } from "@/types/todo";
-import { getRandomTimestamp, convertTimestampToDate } from "@/utils/date-time";
+import { convertTimestampToDate, getCurrentDate } from "@/utils/date-time";
 import {
   addDoc,
   collection,
   deleteDoc,
   doc,
   getDocs,
-  onSnapshot,
   updateDoc,
 } from "firebase/firestore";
 import { revalidatePath } from "next/cache";
@@ -22,7 +21,7 @@ const createTodo = async (todo: Todo) => {
   await addDoc(collectionRef, {
     todo: todo.todo,
     isCompleted: todo.isCompleted,
-    createdAt: getRandomTimestamp(),
+    createdAt: getCurrentDate(),
   });
 };
 
@@ -32,7 +31,6 @@ const getTodos = async () => {
   const todos: Todo[] = [];
 
   querySnapshot.forEach((doc) => {
-    console.log(doc.data());
     todos.push({
       id: doc.id,
       todo: doc.data().todo,
@@ -46,11 +44,12 @@ const getTodos = async () => {
   return todos;
 };
 
-const updateTodo = async (todoId: string, newTodo: string) => {
+const updateTodo = async (todoId: string, newTodo: Todo) => {
   const docRef = doc(db, TODO_COLLECTION, todoId);
 
   await updateDoc(docRef, {
-    todo: newTodo,
+    todo: newTodo.todo,
+    isCompleted: newTodo.isCompleted,
   });
 
   revalidatePath(`/`);

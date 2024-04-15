@@ -45,25 +45,46 @@ export default function TodoListContextProvider({
   };
 
   // Update the todo item
-  const editTodo = async (id: string, newTodo: string) => {
+  const editTodo = async (id: string, newTodoText: string) => {
     try {
+      const oldTodo = todos.find((todo) => todo.id === id);
+
+      if (!oldTodo) {
+        return;
+      }
+
+      // Form new todo item
+      const newTodo: Todo = {
+        ...oldTodo,
+        todo: newTodoText,
+      };
+
       await updateTodo(id, newTodo);
 
-      setTodos(
-        todos.map((todo) =>
-          todo.id === id ? { ...todo, todo: newTodo } : todo
-        )
-      );
+      setTodos(todos.map((todo) => (todo.id === id ? newTodo : todo)));
     } catch (error) {}
   };
 
   // Toggle the todo item for completion or incompletion
-  const toggleTodo = (id: string) => {
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, isCompleted: !todo.isCompleted } : todo
-      )
-    );
+  const toggleTodo = async (id: string) => {
+    try {
+      const todo = todos.find((todo) => todo.id === id);
+
+      if (!todo) {
+        return;
+      }
+
+      await updateTodo(id, {
+        ...todo,
+        isCompleted: !todo.isCompleted,
+      });
+
+      setTodos(
+        todos.map((todo) =>
+          todo.id === id ? { ...todo, isCompleted: !todo.isCompleted } : todo
+        )
+      );
+    } catch (error) {}
   };
 
   // Ultilize useMemo to avoid re-rendering
@@ -77,6 +98,7 @@ export default function TodoListContextProvider({
     (async () => {
       const collectionRef = collection(db, TODO_COLLECTION);
 
+      // Get all documents in the todos collection
       const unsubscribe = onSnapshot(collectionRef, (snapshot) => {
         const list = snapshot.docs.map((doc) => {
           return {

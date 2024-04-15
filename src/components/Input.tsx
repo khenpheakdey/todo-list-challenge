@@ -1,4 +1,4 @@
-import { cn } from "@/utils";
+import { cn } from "@/utils/style";
 import * as React from "react";
 
 export interface InputProps
